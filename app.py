@@ -75,19 +75,32 @@ if st.button("🚀 Analyze Now"):
         suggestion = "Maintain performance"
 
     # PDF REPORT
-    def create_pdf():
-        c = canvas.Canvas("report.pdf", pagesize=letter)
-        c.drawString(100, 750, "EcoCore AI Report")
-        c.drawString(100, 700, f"Efficiency: {efficiency:.2f}")
-        c.drawString(100, 680, f"CO2: {co2:.2f} tons")
-        c.drawString(100, 660, f"Savings: ₹{int(savings)}")
-        c.drawString(100, 640, f"Suggestion: {suggestion}")
-        c.save()
+    from io import BytesIO
 
-    if st.button("📄 Download PDF"):
-        create_pdf()
-        with open("report.pdf", "rb") as f:
-            st.download_button("Download Report", f, "EcoCore_Report.pdf")
+def create_pdf():
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+
+    c.drawString(100, 750, "EcoCore AI Report")
+    c.drawString(100, 700, f"Efficiency: {efficiency:.2f}")
+    c.drawString(100, 680, f"CO2: {co2:.2f} tons")
+    c.drawString(100, 660, f"Savings: ₹{int(savings)}")
+    c.drawString(100, 640, f"Suggestion: {suggestion}")
+
+    c.save()
+    buffer.seek(0)
+
+    return buffer
+
+# Button
+pdf_file = create_pdf()
+
+st.download_button(
+    label="📄 Download PDF",
+    data=pdf_file,
+    file_name="EcoCore_Report.pdf",
+    mime="application/pdf"
+)
 
 # ---------------- DASHBOARD ----------------
 if file:
