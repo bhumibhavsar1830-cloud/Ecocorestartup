@@ -5,29 +5,35 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
 st.set_page_config(page_title="EcoCore AI", layout="wide")
+# ---------------- LOGIN SYSTEM ----------------
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
-# ---------------- LOGIN ----------------
-users = pd.DataFrame({
-    "username": ["admin", "neha"],
-    "password": ["1234", "pass123"]
-})
-
-def login(username, password):
-    user = users[(users['username']==username) & (users['password']==password)]
-    return not user.empty
+users = {
+    "admin": "1234",
+    "neha": "pass123"
+}
 
 st.sidebar.title("🔐 Login")
-username = st.sidebar.text_input("Username")
-password = st.sidebar.text_input("Password", type="password")
 
-if st.sidebar.button("Login"):
-    if login(username, password):
-        st.session_state["logged_in"] = True
-    else:
-        st.sidebar.error("Invalid credentials")
+if not st.session_state.logged_in:
+    username = st.sidebar.text_input("Username")
+    password = st.sidebar.text_input("Password", type="password")
 
-if "logged_in" not in st.session_state:
+    if st.sidebar.button("Login"):
+        if username in users and users[username] == password:
+            st.session_state.logged_in = True
+            st.success("✅ Login successful")
+            st.rerun()
+        else:
+            st.error("❌ Invalid username or password")
+
     st.stop()
+
+# Logout button
+if st.sidebar.button("Logout"):
+    st.session_state.logged_in = False
+    st.rerun()
 
 # ---------------- HEADER ----------------
 st.markdown("""
