@@ -7,7 +7,10 @@ from reportlab.pdfgen import canvas
 st.set_page_config(page_title="EcoCore AI", layout="wide")
 
 # ---------------- LOGIN ----------------
-users = pd.read_csv("users.csv")
+users = pd.DataFrame({
+    "username": ["admin", "neha"],
+    "password": ["1234", "pass123"]
+})
 
 def login(username, password):
     user = users[(users['username']==username) & (users['password']==password)]
@@ -29,18 +32,18 @@ if "logged_in" not in st.session_state:
 # ---------------- HEADER ----------------
 st.markdown("""
 <h1 style='text-align:center;color:green;'>
-🌱 EcoCore AI — Factory Optimization Dashboard
+🌱 EcoCore AI — Smart Factory Dashboard
 </h1>
 """, unsafe_allow_html=True)
 
 st.markdown("---")
 
-# ---------------- INPUT ----------------
+# ---------------- FILE UPLOAD ----------------
 st.sidebar.header("📂 Upload Data")
 file = st.sidebar.file_uploader("Upload CSV/Excel", type=["csv","xlsx"])
 
-# ---------------- MANUAL INPUT ----------------
-st.subheader("✏️ Quick Analysis")
+# ---------------- QUICK ANALYSIS ----------------
+st.subheader("⚡ Quick Analysis")
 
 col1, col2, col3 = st.columns(3)
 
@@ -63,9 +66,9 @@ if st.button("🚀 Analyze Now"):
         suggestion = "Reduce idle time & optimize machines"
     else:
         st.success("✅ Good Efficiency")
-        suggestion = "Maintain current performance"
+        suggestion = "Maintain performance"
 
-    # PDF
+    # PDF REPORT
     def create_pdf():
         c = canvas.Canvas("report.pdf", pagesize=letter)
         c.drawString(100, 750, "EcoCore AI Report")
@@ -80,7 +83,7 @@ if st.button("🚀 Analyze Now"):
         with open("report.pdf", "rb") as f:
             st.download_button("Download Report", f, "EcoCore_Report.pdf")
 
-# ---------------- DATA DASHBOARD ----------------
+# ---------------- DASHBOARD ----------------
 if file:
     try:
         df = pd.read_csv(file)
@@ -92,21 +95,67 @@ if file:
     factory = st.selectbox("Select Factory", df['factory_name'].unique())
     data = df[df['factory_name'] == factory]
 
+    # Basic Graph
     st.line_chart(data[['energy','units']])
 
-    # ML Model
+    # Convert date
+    data['date'] = pd.to_datetime(data['date'])
+
+    # 📊 Trend Graph
+    st.markdown("## 📊 Energy Trend")
+    st.line_chart(data.set_index('date')['energy'])
+
+    # 🧠 AI Insights
+    st.markdown("## 🧠 AI Insights")
+
+    avg_energy = data['energy'].mean()
+    high_spikes = data[data['energy'] > avg_energy * 1.2]
+
+    if not high_spikes.empty:
+        st.error(f"⚠️ {len(high_spikes)} energy spikes detected!")
+        st.write("👉 Machines may be inefficient during these periods")
+    else:
+        st.success("✅ No major energy issues")
+
+    # 🚨 Anomaly Detection
+    st.markdown("## 🚨 Anomaly Detection")
+
+    threshold = data['energy'].mean() + 2 * data['energy'].std()
+    anomalies = data[data['energy'] > threshold]
+
+    if not anomalies.empty:
+        st.warning("⚠️ Critical anomalies detected!")
+        st.dataframe(anomalies)
+    else:
+        st.success("✅ System running normally")
+
+    # 💰 Savings
+    st.markdown("## 💰 Savings Analysis")
+
+    waste_energy = data[data['energy'] > avg_energy]['energy'].sum()
+    estimated_savings = waste_energy * 0.1
+
+    st.metric("Estimated Savings", f"₹{int(estimated_savings)}")
+
+    # 🤖 ML Prediction
+    st.markdown("## 🔮 Energy Prediction")
+
     model = LinearRegression()
     model.fit(data[['hours']], data['energy'])
 
     future = st.number_input("Enter Future Hours")
 
-    if st.button("🔮 Predict Energy"):
+    if st.button("Predict Energy"):
         pred = model.predict([[future]])
         st.success(f"Predicted Energy: {pred[0]:.2f} kWh")
 
-    # Summary
-    avg_energy = data['energy'].mean()
-    avg_units = data['units'].mean()
+    # 🏭 Factory Comparison
+    st.markdown("## 🏭 Factory Comparison")
 
-    st.write(f"📊 Avg Energy: {avg_energy:.2f}")
-    st.write(f"📊 Avg Units: {avg_units:.2f}")
+    comparison = df.groupby('factory_name')['energy'].mean()
+    st.bar_chart(comparison)
+
+    # Summary
+    st.markdown("## 📊 Summary")
+    st.write(f"Avg Energy: {data['energy'].mean():.2f}")
+    st.write(f"Avg Units: {data['units'].mean():.2f}")
